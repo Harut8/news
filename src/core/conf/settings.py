@@ -75,6 +75,7 @@ class ApiSettings(CustomSettings):
     API_V1_PREFIX: str = "/api/v1"
     API_KEY: SecretStr = Field(default=f"{SECRET_KEY_32}")
     API_SECRET: SecretStr = Field(default=f"{SECRET_KEY_32}")
+    API_BASE_URL: str = Field(default="https://d199-5-77-199-88.ngrok-free.app")
 
 
 class S3Settings(CustomSettings):
@@ -100,6 +101,11 @@ class ApiCallSettings(AppSettings):
         return self
 
 
+class TgSettings(CustomSettings):
+    BOT_TOKEN: SecretStr = Field(default=f"{SECRET_KEY_64}", alias="BOT_TOKEN")
+    WEBHOOK_PATH: str = Field(default="/webhook")
+
+
 class Settings(BaseModel):
     APP_SETTINGS: AppSettings = Field(default_factory=AppSettings)
     DATABASE: DbSettings = Field(default_factory=DbSettings)
@@ -107,6 +113,7 @@ class Settings(BaseModel):
     S3: S3Settings = Field(default_factory=S3Settings)
     JWT: JWTSettings = Field(default_factory=JWTSettings)
     API_CALL: ApiCallSettings = Field(default_factory=ApiCallSettings)
+    Tg: TgSettings = Field(default_factory=TgSettings)
 
 
 @lru_cache

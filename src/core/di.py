@@ -1,6 +1,8 @@
 from dependency_injector import containers, providers
 from dependency_injector.providers import Singleton
 
+from src.app.user.repo import UserRepository
+from src.app.user.service import UserService
 from src.core.db.pg_base_repo import BaseRepository
 from src.core.db.pg_connection import PgAsyncSQLAlchemyAdapter
 from src.core.db.pg_uow import PgSQLAlchemyUnitOfWork
@@ -13,6 +15,7 @@ class DependencyContainer(containers.DeclarativeContainer):
     wiring_config = containers.WiringConfiguration(
         modules=[
             "src.core.utils.api.middlewares",
+            "src.app.user.bot_api",
         ]
     )
 
@@ -28,5 +31,10 @@ class DependencyContainer(containers.DeclarativeContainer):
         logger=LOGGER,
         repositories={
             BaseRepository.__name__: BaseRepository,
+            UserRepository.__name__: UserRepository,
         },
+    )
+    user_service: UserService = providers.Factory(
+        UserService,
+        uow=uow,
     )

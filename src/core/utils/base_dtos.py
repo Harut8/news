@@ -19,3 +19,9 @@ class IdBaseDto(BaseDto):
 
 class LabelDto(BaseDto, CamelBaseModel):
     label: str
+
+
+class ByChunkDto(CamelBaseModel, BaseDto):
+    current_page: int
+    total_pages: int
+    total_results: int

@@ -94,7 +94,7 @@ def run_request(func):
             except json.JSONDecodeError as e:
                 LOGGER.exception(e)
                 pass
-            return response.status_code in [200, 201, 204]
+            return response.status_code in {200, 201, 204}
 
     return wrapper
 

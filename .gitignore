@@ -26,8 +26,5 @@ coverage.xml
 .charts
 venv
 .venv
-init.sql
 .idea
 data
-Makefile
-docker-compose.yml

@@ -1,0 +1,36 @@
+services:
+  carumi:
+    container_name: carumi
+    restart: on-failure
+    build:
+      context: .
+      dockerfile: app.Dockerfile
+    ports:
+      - "8000:8000"
+    command: uvicorn main:fastapi_app --reload --host 0.0.0.0 --port 8000 --workers 3
+    volumes:
+      - .:/app
+    depends_on:
+      carumi-postgres:
+        condition: service_healthy
+
+  carumi-postgres:
+    image: postgres:16
+    container_name: carumi-postgres
+    hostname: carumi
+    user: postgres
+    restart: always
+    volumes:
+      - carumi-postgres:/var/lib/postgresql/data/
+    ports:
+      - "5433:5432"
+    env_file:
+      - ./src/core/conf/envs/.env.dev
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready", "-U", "postgres" ]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+
+volumes:
+  carumi-postgres:

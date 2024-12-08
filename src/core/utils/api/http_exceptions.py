@@ -103,3 +103,9 @@ class TimeoutException(ServiceException):
     status_code = status.HTTP_408_REQUEST_TIMEOUT
     message = "Request Timeout"
     code = "TIMEOUT"
+
+
+def pydantic_error_to_str(_errors):
+    _errors = _errors.errors()
+    _error_msg = [f"{_error['loc']}: {_error['msg']}" for _error in _errors]
+    return "\n".join(_error_msg)
