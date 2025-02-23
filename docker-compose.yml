@@ -1,6 +1,6 @@
 services:
-  carumi:
-    container_name: carumi
+  news:
+    container_name: news
     restart: on-failure
     build:
       context: .
@@ -11,17 +11,32 @@ services:
     volumes:
       - .:/app
     depends_on:
-      carumi-postgres:
+      news-postgres:
+        condition: service_healthy
+      news-rabbitmq:
         condition: service_healthy
 
-  carumi-postgres:
+  news-worker:
+    build:
+      context: .
+      dockerfile: worker.Dockerfile
+    command: [ 'faststream', 'run', 'src/app/worker/rmq_api:consumer_app']
+    container_name: news-worker
+    restart: on-failure
+    depends_on:
+      news-rabbitmq:
+        condition: service_healthy
+      news-postgres:
+        condition: service_healthy
+
+  news-postgres:
     image: postgres:16
-    container_name: carumi-postgres
-    hostname: carumi
+    container_name: news-postgres
+    hostname: news
     user: postgres
     restart: always
     volumes:
-      - carumi-postgres:/var/lib/postgresql/data/
+      - news-postgres:/var/lib/postgresql/data/
     ports:
       - "5433:5432"
     env_file:
@@ -31,6 +46,24 @@ services:
       interval: 2s
       timeout: 2s
       retries: 5
+  news-rabbitmq:
+    image: rabbitmq:3-management
+    container_name: news-rabbitmq
+    hostname: news-rabbitmq
+    environment:
+        - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+        - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+    restart: always
+    ports:
+      - '5673:5672'
+      - '15673:15672'
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      start_period: 4s
+      interval: 2s
+      timeout: 2s
+      retries: 5
 
 volumes:
-  carumi-postgres:
+  news-postgres:
+

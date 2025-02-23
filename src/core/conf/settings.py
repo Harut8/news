@@ -9,7 +9,7 @@ from pydantic import (
     Field,
     PostgresDsn,
     SecretStr,
-    model_validator,
+    model_validator, AmqpDsn,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -70,13 +70,34 @@ class DbSettings(AppSettings):
         )
         return data
 
+class RabbitMQSettings(AppSettings):
+    RABBITMQ_HOST: str = Field(default="rabbitmq", alias="RABBITMQ_HOST")
+    RABBITMQ_PORT: int = Field(default=5672, alias="RABBITMQ_PORT")
+    RABBITMQ_USER: str = Field(default="guest", alias="RABBITMQ_USER")
+    RABBITMQ_PASSWORD: SecretStr = Field(default="guest", alias="RABBITMQ_PASSWORD")
+    BROKER_URL: AmqpDsn | str = Field(default=..., alias="RABBIT_MQ_BROKER_URL")
+
+    EXCHANGE: str = Field(default="walle", alias="RABBIT_MQ_EXCHANGE")
+
+    @model_validator(mode="before")
+    def validate_broker_url(cls, data: dict):
+        _built_uri = AmqpDsn.build(
+            scheme="amqp",
+            host=data.setdefault("RABBITMQ_HOST", "rabbitmq"),
+            port=int(data.setdefault("RABBITMQ_PORT", 5672)),
+            username=data.setdefault("RABBITMQ_USER", "guest"),
+            password=data.setdefault("RABBITMQ_PASSWORD", "guest"),
+        ).unicode_string()
+        data["RABBIT_MQ_BROKER_URL"] = (
+            _built_uri if not data.get("RABBIT_MQ_BROKER_URL") else data["RABBIT_MQ_BROKER_URL"]
+        )
+        return data
+
 
 class ApiSettings(CustomSettings):
     API_V1_PREFIX: str = "/api/v1"
     API_KEY: SecretStr = Field(default=f"{SECRET_KEY_32}")
     API_SECRET: SecretStr = Field(default=f"{SECRET_KEY_32}")
-    API_BASE_URL: str = Field(default="https://d199-5-77-199-88.ngrok-free.app")
-
 
 class S3Settings(CustomSettings):
     AWS_ACCESS_KEY: SecretStr = Field(default="")
@@ -101,19 +122,14 @@ class ApiCallSettings(AppSettings):
         return self
 
 
-class TgSettings(CustomSettings):
-    BOT_TOKEN: SecretStr = Field(default=f"{SECRET_KEY_64}", alias="BOT_TOKEN")
-    WEBHOOK_PATH: str = Field(default="/webhook")
-
-
 class Settings(BaseModel):
     APP_SETTINGS: AppSettings = Field(default_factory=AppSettings)
     DATABASE: DbSettings = Field(default_factory=DbSettings)
+    RABBITMQ: RabbitMQSettings = Field(default_factory=RabbitMQSettings)
     API_V1: ApiSettings = Field(default_factory=ApiSettings)
     S3: S3Settings = Field(default_factory=S3Settings)
     JWT: JWTSettings = Field(default_factory=JWTSettings)
     API_CALL: ApiCallSettings = Field(default_factory=ApiCallSettings)
-    Tg: TgSettings = Field(default_factory=TgSettings)
 
 
 @lru_cache

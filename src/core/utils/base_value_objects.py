@@ -1,7 +1,11 @@
+import re
 from enum import IntEnum
+from typing import Annotated
 
-from pydantic import GetJsonSchemaHandler
+from pydantic import GetJsonSchemaHandler, WrapValidator
 from pydantic_core import CoreSchema
+
+from src.core.utils.api.http_exceptions import ValidationError
 
 
 class BaseIntEnum(IntEnum):
@@ -59,3 +63,33 @@ def add_mapping_to_enum(_mapping: dict):
         return __wrapper()
 
     return _wrapper
+
+
+url_regex_str = (
+    r"^(?:http|ftp)s?://"  # http:// or https://
+    r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"  # domain...
+    r"localhost|"  # localhost...
+    r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # ...or IP
+    r"(?::\d+)?"  # optional port
+    r"(?:/?|[/?]\S+)$"  # path
+)
+
+url_regex = re.compile(url_regex_str, re.IGNORECASE)
+
+def url_regexp_check(value):
+    if not url_regex.match(value):
+        raise ValidationError("Invalid url format")
+    return value
+
+
+def validate_url_format():
+    def wrapper(value, handler):
+        return url_regexp_check(value)
+
+    return wrapper
+
+
+UrlString = Annotated[
+    str,
+    WrapValidator(validate_url_format()),
+]

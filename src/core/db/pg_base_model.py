@@ -7,7 +7,7 @@ from typing import TypeVar
 from pydantic.alias_generators import to_camel
 from sqlalchemy import UUID, DateTime, String, func
 from sqlalchemy.dialects.mysql import BIGINT
-from sqlalchemy.dialects.postgresql import ENUM as DEFAULT_PG_ENUM
+from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 from typing_extensions import Annotated
 
@@ -109,8 +109,3 @@ class PgBaseModel(DeclarativeBase):
         }
         return cls(**_filtered_data)
 
-
-class PgIntEnum(DEFAULT_PG_ENUM):
-    def __init__(self, *args, **kwargs):
-        kwargs["values_callable"] = lambda obj: [str(e.value) for e in obj]
-        super().__init__(*args, **kwargs)

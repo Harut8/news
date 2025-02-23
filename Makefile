@@ -1,5 +1,5 @@
 ENV_FILE := src/core/conf/envs/.env.dev
-RUN=docker compose --env-file ${ENV_FILE} run --rm carumi
+RUN=docker compose --env-file ${ENV_FILE} run --rm news
 NONE_IMAGES=docker images -f "dangling=true" -q
 RUNNING_CONTAINERS=docker ps -q
 COMPOSE_FILE := docker-compose.yml
