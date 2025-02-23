@@ -20,3 +20,15 @@ class RabbitMQEvents(Enum):
     @property
     def routing_key(self):
         return self._routing_key
+
+    @property
+    def queue_dead_letter(self):
+        return f"{self.queue}_dead_letter"
+
+    @property
+    def exchange_dead_letter(self):
+        return f"{self.exchange}_dead_letter"
+
+    @property
+    def routing_key_dead_letter(self):
+        return f"{self.routing_key}_dead_letter"

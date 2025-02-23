@@ -17,4 +17,4 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 ADD . .
-CMD ["faststream", "run", "src/app/worker/rmq_api:consumer_app", "--workers 1"]
+CMD ["faststream", "run", "src/app/worker/rmq_api:consumer_app", "--workers 3"]

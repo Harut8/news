@@ -62,7 +62,8 @@ class CrawlerService:
         return await self._parsing_service.find_sub_urls(url)
 
     async def fetch_info_from_url(self, url: UrlString):
-        _url = await self._parsing_service.add_url(url)
-        if not _url:
-            return
-        return await self._fetching_service.fetch_info_from_url(URL_ID(_url.id))
+        await asyncio.sleep(3)
+        # _url = await self._parsing_service.add_url(url)
+        # if not _url:
+        #     return
+        # return await self._fetching_service.fetch_info_from_url(URL_ID(_url.id))
