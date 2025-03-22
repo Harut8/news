@@ -7,7 +7,6 @@ from typing import TypeVar
 from pydantic.alias_generators import to_camel
 from sqlalchemy import UUID, DateTime, String, func
 from sqlalchemy.dialects.mysql import BIGINT
-from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 from typing_extensions import Annotated
 
@@ -86,9 +85,7 @@ class PgBaseModel(DeclarativeBase):
 
     def to_dict(self, camel_case: bool = False, **kwargs):
         if camel_case:
-            return {
-                to_camel(c.name): getattr(self, c.name) for c in self.__table__.columns
-            } | kwargs  # type: ignore
+            return {to_camel(c.name): getattr(self, c.name) for c in self.__table__.columns} | kwargs  # type: ignore
         return {c.name: getattr(self, c.name) for c in self.__table__.columns} | kwargs  # type: ignore
 
     def merge_tables_output(self, output):
@@ -104,8 +101,5 @@ class PgBaseModel(DeclarativeBase):
 
     @classmethod
     def from_dict(cls, data):
-        _filtered_data = {
-            k: v for k, v in data.items() if v is not None and hasattr(cls, k)
-        }
+        _filtered_data = {k: v for k, v in data.items() if v is not None and hasattr(cls, k)}
         return cls(**_filtered_data)
-

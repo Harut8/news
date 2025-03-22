@@ -44,7 +44,7 @@ class SchedulerService:
             task_data=TaskDataDto(
                 routing_key=RabbitMQEvents.fetch_url.routing_key,
                 exchange=RabbitMQEvents.fetch_url.exchange,
-                queue=RabbitMQEvents.fetch_url.queue
+                queue=RabbitMQEvents.fetch_url.queue,
             ),
             status=SchedulerStatusType.PENDING,
             scheduled_time=SchedulerService.current_time_plus_minute(1),
@@ -64,22 +64,18 @@ class SchedulerService:
             ).fetch_10_pending_schedules_mark_as_processing()
         return _schedules
 
-    async def update_scheduler_status_by_id(self,
-                                            schedule_id: int,
-                                            status: SchedulerStatusType,
-                                            retry_count: int,
-                                            exception=None,
-                                            schedule_time: Optional[datetime] = None
-                                            ):
+    async def update_scheduler_status_by_id(
+        self,
+        schedule_id: int,
+        status: SchedulerStatusType,
+        retry_count: int,
+        exception=None,
+        schedule_time: Optional[datetime] = None,
+    ):
         async with self._uow.atomic() as _session:
             await self._uow.get_repository(SchedulerRepository, _session).update_scheduler_status_by_id(
                 schedule_id,
-                {
-                    "status": status,
-                    "exception": exception,
-                    "retry_count": retry_count,
-                    "scheduled_time": schedule_time
-                }
+                {"status": status, "exception": exception, "retry_count": retry_count, "scheduled_time": schedule_time},
             )
             LOGGER.info(f"Scheduler with id {schedule_id} status updated to {status}")
 
@@ -108,10 +104,7 @@ class SchedulerService:
         except Exception as e:
             LOGGER.error(f"Scheduler with id {schedule_id} failed")
             await self.update_scheduler_status_by_id(
-                schedule_id=schedule_id,
-                status=SchedulerStatusType.PENDING,
-                exception=e,
-                retry_count=retry_count + 1
+                schedule_id=schedule_id, status=SchedulerStatusType.PENDING, exception=e, retry_count=retry_count + 1
             )
         else:
             await self.update_scheduler_status_by_id(
@@ -122,20 +115,16 @@ class SchedulerService:
 
     async def process_schedules(self):
         _schedules = await self.fetch_10_pending_schedules_mark_as_processing()
-        try:
-            _tasks = [
-                self._process_schedule(
-                    schedule_id=schedule["id"],
-                    task_data=TaskDataDto.model_validate(schedule["task_data"]),
-                    url=schedule["url"],
-                    retry_count=schedule["retry_count"],
-                )
-                for schedule in _schedules
-            ]
-            await asyncio.gather(*_tasks)
-            LOGGER.info("All schedules processed")
-        except Exception as e:
-            LOGGER.exception(e)
+        _tasks = [
+            self._process_schedule(
+                schedule_id=schedule["id"],
+                task_data=TaskDataDto.model_validate(schedule["task_data"]),
+                url=schedule["url"],
+                retry_count=schedule["retry_count"],
+            )
+            for schedule in _schedules
+        ]
+        await asyncio.gather(*_tasks)
 
     @repeat_at(cron="*/5 * * * *")
     async def start_scheduler(self):

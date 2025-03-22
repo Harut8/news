@@ -22,7 +22,7 @@ dependencies = [
     "uvloop>=0.21.0",
     "python-json-logger>=2.0.7",
     "crawlee>=0.5.4",
-    "faststream>=0.5.34",
+    "faststream[cli]>=0.5.34",
     "aio-pika>=9.5.4",
     "croniter>=6.0.0",
 ]

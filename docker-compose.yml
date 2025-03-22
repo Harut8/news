@@ -20,7 +20,7 @@ services:
     build:
       context: .
       dockerfile: worker.Dockerfile
-    command: [ 'faststream', 'run', 'src/app/worker/rmq_api:consumer_app', '--workers 3']
+    command: [ 'faststream', 'run', 'src/app/worker/rmq_spi:consumer_app', '--workers 3']
     container_name: news-worker
     restart: on-failure
     depends_on:
@@ -66,4 +66,3 @@ services:
 
 volumes:
   news-postgres:
-

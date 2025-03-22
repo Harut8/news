@@ -1,11 +1,11 @@
 from dependency_injector import containers, providers
-from dependency_injector.providers import Singleton, Factory
-from faststream import FastStream
+from dependency_injector.providers import Factory, Singleton
+from faststream.asgi import AsgiFastStream
 from faststream.rabbit import RabbitBroker, RabbitRouter
 
 from src.app.crawler.fake_scrapper import FakeCrawler
-from src.app.crawler.repo import IndexRepository, ContentRepository, UrlRepository, MetaRepository
-from src.app.crawler.service import ParsingService, CrawlerService, FetchingService
+from src.app.crawler.repo import ContentRepository, IndexRepository, MetaRepository, UrlRepository
+from src.app.crawler.service import CrawlerService, FetchingService, ParsingService
 from src.app.scheduler.repo import SchedulerRepository
 from src.app.scheduler.service import SchedulerService
 from src.core.db.pg_base_repo import BaseRepository
@@ -52,16 +52,15 @@ class DependencyContainer(containers.DeclarativeContainer):
             ContentRepository.__name__: ContentRepository,
             UrlRepository.__name__: UrlRepository,
             MetaRepository.__name__: MetaRepository,
-            SchedulerRepository.__name__: SchedulerRepository
+            SchedulerRepository.__name__: SchedulerRepository,
         },
     )
-    faststream_app = providers.Singleton(FastStream, rmq_broker)
+    faststream_app = providers.Singleton(AsgiFastStream, rmq_broker)
 
     parsing_service: Factory[ParsingService] = providers.Factory(ParsingService, uow=uow, scraper=FakeCrawler())
     fetching_service: Factory[CrawlerService] = providers.Factory(FetchingService, uow=uow, scraper=FakeCrawler())
     scheduler_service: Factory[SchedulerService] = providers.Factory(SchedulerService, uow=uow, rmq_publisher=rmq_publisher)
 
-    crawling_service: Factory[CrawlerService] = providers.Factory(CrawlerService,
-                                                                  fetching_service=fetching_service,
-                                                                  scheduler_service=scheduler_service,
-                                                                  parsing_service=parsing_service)
+    crawling_service: Factory[CrawlerService] = providers.Factory(
+        CrawlerService, fetching_service=fetching_service, scheduler_service=scheduler_service, parsing_service=parsing_service
+    )
