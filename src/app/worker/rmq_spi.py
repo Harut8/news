@@ -1,4 +1,3 @@
-import asyncio
 from typing import Any, Awaitable, Callable
 
 from faststream.rabbit import ExchangeType, RabbitExchange, RabbitMessage, RabbitQueue
@@ -64,7 +63,5 @@ async def fetch_info_from_url_dead_letter(message: RabbitMessage):
 )
 async def fetch_info_from_url(message: FetchUrlDto):
     LOGGER.info(f"----Message received----: {message}")
-    await asyncio.sleep(3)
-    raise
-    # await CONTAINER.crawling_service().fetch_info_from_url(message.url)
-    # LOGGER.info(f"----Message processed----: {message}")
+    await CONTAINER.crawling_service().fetch_info_from_url(message.url)
+    LOGGER.info(f"----Message processed----: {message}")

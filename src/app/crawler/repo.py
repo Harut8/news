@@ -20,6 +20,10 @@ class UrlRepository(BaseRepository[Url]):
         _stmt = update(Url).where(Url.id == url_id).values(**kwargs)
         return await self.update_stmt_without_commit(_stmt)
 
+    async def get_url(self, url: str) -> Url:
+        _stmt = select(Url).filter(Url.url.ilike(url))
+        return await self.run_select_stmt_for_one(_stmt)
+
 
 class IndexRepository(BaseRepository[Index]):
     ...

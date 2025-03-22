@@ -1,6 +1,6 @@
 import asyncio
 import datetime
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,12 +27,12 @@ class ParsingService:
             raise UrlExistsError(f"Url {url} already exists")
         return _is_exists
 
-    async def add_url(self, url: UrlString) -> Optional[Url]:
+    async def add_url(self, url: UrlString) -> Url:
         async with self._uow.atomic() as session:
-            _is_exists = await self.is_unique_url(url, session, with_exception=False)  # TODO: move to bloom filter
-            if _is_exists:
+            _url = await self._uow.get_repository(UrlRepository, session).get_url(url)
+            if _url:
                 LOGGER.info(f"Url {url} already exists in URL table")
-                return None
+                return _url
             return await self._uow.get_repository(UrlRepository, session).add_url(
                 Url.factory(url=url, status=CrawlingStatus.QUEUED.str_value)
             )
@@ -110,7 +110,5 @@ class CrawlerService:
     async def fetch_info_from_url(self, url: UrlString):
         await asyncio.sleep(3)
         _url = await self._parsing_service.add_url(url)
-        if not _url:
-            return
         _data = await self._fetching_service.fetch_info_from_url(_url)
         await self._parsing_service.add_additional_data_to_url(_url, _data)
