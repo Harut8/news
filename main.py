@@ -14,9 +14,9 @@ from src.core.conf.settings import SETTINGS
 from src.core.di import DependencyContainer
 from src.core.utils.api.http_exceptions import (
     NotFound,
+    ServiceException,
     ValidationError,
     pydantic_error_to_str,
-    ServiceException,
 )
 from src.core.utils.api.logger import LOGGER, RouterLoggingMiddleware
 
@@ -27,7 +27,6 @@ class CustomFastAPI(FastAPI):
     container: DependencyContainer
 
 
-
 @asynccontextmanager
 async def lifespan(_app: CustomFastAPI):
     try:
@@ -35,7 +34,7 @@ async def lifespan(_app: CustomFastAPI):
             await _conn.execute(text("SET lock_timeout = '4s'"))
             await _conn.execute(text("SET statement_timeout = '8s'"))
         await _app.container.rmq_broker.provided.connect()()
-        await _app.container.scheduler_service.provided.start_scheduler()()
+        await _app.container.scheduler_service.provided.start_scheduled_url_fetcher()()
     except Exception as _e:
         LOGGER.exception(_e)
     yield
@@ -91,14 +90,13 @@ async def not_found(request: Request, exc: HTTPException):
 
 @fastapi_app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: HTTPException):
-    return ValidationError(
-        message=f"{pydantic_error_to_str(exc)} : {request.url}"
-    ).to_response()
+    return ValidationError(message=f"{pydantic_error_to_str(exc)} : {request.url}").to_response()
 
 
 @fastapi_app.exception_handler(500)
 async def server_error_handler(request: Request, exc: HTTPException):
     return ServiceException().to_response()
+
 
 @fastapi_app.get("/health")
 async def health():

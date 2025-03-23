@@ -2,6 +2,7 @@ import asyncio
 import datetime
 from typing import Any
 
+from bs4 import BeautifulSoup
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.crawler.dto import AuthorDto, ContentDto, IndexDto, MetaDto
@@ -9,7 +10,9 @@ from src.app.crawler.exception import UrlExistsError
 from src.app.crawler.model import Author, Content, CrawlingStatus, Index, Meta, Url
 from src.app.crawler.repo import UrlRepository
 from src.app.scheduler.service import SchedulerService
+from src.app.worker.dto import ByDateFetchUrlDto
 from src.core.db.pg_uow import PgSQLAlchemyUnitOfWork
+from src.core.utils.api.custom_requests import create_get_request
 from src.core.utils.api.logger import LOGGER
 from src.core.utils.base_value_objects import UrlString
 from src.core.utils.types import URL_ID
@@ -27,7 +30,7 @@ class ParsingService:
             raise UrlExistsError(f"Url {url} already exists")
         return _is_exists
 
-    async def add_url(self, url: UrlString) -> Url:
+    async def add_scheduled_url(self, url: UrlString) -> Url:
         async with self._uow.atomic() as session:
             _url = await self._uow.get_repository(UrlRepository, session).get_url(url)
             if _url:
@@ -68,14 +71,24 @@ class ParsingService:
             url.index = [Index.factory(**_index.model_dump()) for _index in _indexes]
             await self._uow.get_repository(UrlRepository, session).add_url(url)
 
-    async def find_sub_urls(self, url_id: URL_ID):
-        ...
+    @staticmethod
+    async def find_sub_urls(content: str) -> list[str]:
+        soup = BeautifulSoup(content, "html.parser")
+        return [link.get("href") for link in soup.find_all("a", href=True)]
 
 
 class FetchingService:
     def __init__(self, uow: PgSQLAlchemyUnitOfWork, scraper: Any):
         self._uow = uow
         self._scraper = scraper
+
+    @staticmethod
+    async def check_url_by_date(url: UrlString, year: str, month: str, day: str) -> str:
+        _resp = await create_get_request(
+            base_url=url,
+            url=f"{year}/{month}/{day}",
+        )
+        return _resp
 
     async def fetch_info_from_url(self, url: Url) -> str:
         LOGGER.info(f"Fetching info from url {url.id}")
@@ -98,17 +111,25 @@ class CrawlerService:
         self._fetching_service = fetching_service
         self._scheduler_service = scheduler_service
 
-    async def test_fetching(self):
-        await self._scheduler_service.fetch_10_pending_schedules_mark_as_processing()
+    async def check_url_by_date_add_scheduled_url(self, url_date: ByDateFetchUrlDto):
+        # Should be changed on Working Scrapper(scrapy, playwright...)
+        _content = await self._fetching_service.check_url_by_date(url_date.url, url_date.year, url_date.month, url_date.day)
+        if _content:
+            _sub_urls = await self._parsing_service.find_sub_urls(_content)
+            await self.schedule_urls(_sub_urls)
 
     async def schedule_urls(self, urls: list[UrlString]):
-        await asyncio.gather(*[self._scheduler_service.add_schedule(url) for url in urls])
+        await asyncio.gather(*[self._scheduler_service.add_scheduled_url(url) for url in urls])
 
-    async def find_sub_urls(self, url: UrlString):
-        return await self._parsing_service.find_sub_urls(url)
+    async def find_sub_urls(self, content: str) -> list[str]:
+        return await self._parsing_service.find_sub_urls(content)
 
-    async def fetch_info_from_url(self, url: UrlString):
+    async def fetch_info_from_url(self, url: UrlString) -> Url:
         await asyncio.sleep(3)
-        _url = await self._parsing_service.add_url(url)
+        _url = await self._parsing_service.add_scheduled_url(url)
         _data = await self._fetching_service.fetch_info_from_url(_url)
         await self._parsing_service.add_additional_data_to_url(_url, _data)
+        return _url
+
+    async def process_fetched_content(self, url_id: int):
+        pass

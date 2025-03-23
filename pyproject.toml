@@ -25,6 +25,7 @@ dependencies = [
     "faststream[cli]>=0.5.34",
     "aio-pika>=9.5.4",
     "croniter>=6.0.0",
+    "bs4>=0.0.2",
 ]
 
 [tool.ruff]

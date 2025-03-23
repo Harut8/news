@@ -22,6 +22,7 @@ def repeat_at(*, cron: str, max_repetitions: int | None = None) -> callable:
 
         @wraps(func)
         async def wrapper(*args, **kwargs):
+            LOGGER.info(f"Starting task with cron expression: {cron} for handler: {func.__name__}")
             repetitions = 0
             if not croniter.is_valid(cron):
                 raise ValueError(f"Invalid cron expression: {cron}")

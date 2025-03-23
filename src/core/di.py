@@ -3,8 +3,8 @@ from dependency_injector.providers import Factory, Singleton
 from faststream.asgi import AsgiFastStream
 from faststream.rabbit import RabbitBroker, RabbitRouter
 
-from src.app.crawler.fake_scrapper import FakeCrawler
 from src.app.crawler.repo import ContentRepository, IndexRepository, MetaRepository, UrlRepository
+from src.app.crawler.scrapping import FakeCrawler
 from src.app.crawler.service import CrawlerService, FetchingService, ParsingService
 from src.app.scheduler.repo import SchedulerRepository
 from src.app.scheduler.service import SchedulerService

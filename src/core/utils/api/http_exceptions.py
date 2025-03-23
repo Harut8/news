@@ -8,9 +8,7 @@ class ServiceException(HTTPException):
     code = "INTERNAL_SERVER_ERROR"
     meta: dict = {}
 
-    def __init__(
-        self, message=None, code=None, errors=None, status_code=None, meta=None
-    ):
+    def __init__(self, message=None, code=None, errors=None, status_code=None, meta=None):
         if meta:
             self.meta = meta
 
@@ -36,9 +34,7 @@ class ServiceException(HTTPException):
         return (
             JSONResponse(
                 status_code=self.status_code,
-                content={
-                    "detail": {i: v for i, v in self.payload.items() if v is not None}
-                },
+                content={"detail": {i: v for i, v in self.payload.items() if v is not None}},
             )
             if is_json
             else {"detail": self.payload}

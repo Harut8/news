@@ -7,10 +7,10 @@ import httpx
 from retry_async import retry
 
 from src.core.utils.api.http_exceptions import (
+    BadGatewayException,
+    RequestError,
     ServiceUnavailableException,
     TimeoutException,
-    RequestError,
-    BadGatewayException,
 )
 from src.core.utils.api.logger import LOGGER
 
@@ -42,9 +42,7 @@ def handle_circuit_breaker_exception(func):
         try:
             return await func(*args, **kwargs)
         except circuitbreaker.CircuitBreakerError as e:
-            raise ServiceUnavailableException(
-                message="Service Unavailable due to Circuit Breaker"
-            ) from e
+            raise ServiceUnavailableException(message="Service Unavailable due to Circuit Breaker") from e
 
     return wrapper
 
@@ -72,9 +70,7 @@ def request_exception_handler(func: Callable[..., Any]) -> Callable[..., Any]:
                 message=f"Something went wrong. Problem likes network issue or server error. REASON: {e}",
             ) from e
         except httpx.ConnectError as e:
-            raise ServiceUnavailableException(
-                message="Third Service Unavailable"
-            ) from e
+            raise ServiceUnavailableException(message=f"Third Service Unavailable. REASON: {e}") from e
         except httpx.ConnectTimeout as e:
             raise TimeoutException(message="Connection Timeout") from e
 
@@ -87,10 +83,14 @@ def run_request(func):
         async with httpx.AsyncClient() as client:
             kwargs["client"] = client
             kwargs["timeout"] = 3  # this is in seconds
-            response = await func(*args, **kwargs)
+            response: httpx.Response = await func(*args, **kwargs)
             response.raise_for_status()
             try:
-                return response.json()
+                _is_json = kwargs.get("json", False)
+                if _is_json:
+                    return response.json()
+                else:
+                    return response.content
             except json.JSONDecodeError as e:
                 LOGGER.exception(e)
                 pass

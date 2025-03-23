@@ -3,6 +3,8 @@ from enum import Enum
 
 class RabbitMQEvents(Enum):
     fetch_url = ("news.direct", "news.crawler.fetch_url", "crawler.fetch_url")
+    check_sub_url_by_date = ("news.direct", "news.crawler.check_sub_url_by_date", "crawler.check_sub_url_by_date")
+    content_fetched = ("news.direct", "news.crawler.content_fetched", "crawler.content_fetched")
 
     def __init__(self, exchange, queue, routing_key):
         self._exchange = exchange

@@ -1,7 +1,7 @@
 import functools
 import logging
 from contextlib import asynccontextmanager
-from typing import Callable, Type, TypeVar
+from typing import Any, AsyncGenerator, Callable, Type, TypeVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,13 +27,11 @@ class PgSQLAlchemyUnitOfWork:
         return self._sqlalchemy_adapter
 
     @asynccontextmanager
-    async def atomic(self, read_only: bool = False) -> AsyncSession:
+    async def atomic(self, read_only: bool = False) -> AsyncGenerator[AsyncSession | Any, Any]:
         async with self.sqlalchemy_adapter.async_scoped_session() as _session:
             try:
                 if self._logger:
-                    self._logger.debug(
-                        f"Session status: {_session.bind.pool.status()} at start"
-                    )
+                    self._logger.debug(f"Session status: {_session.bind.pool.status()} at start")
                 yield _session
                 if not read_only:
                     await _session.commit()
@@ -43,28 +41,22 @@ class PgSQLAlchemyUnitOfWork:
             finally:
                 await _session.close()
             if self._logger:
-                self._logger.debug(
-                    f"Session status: {_session.bind.pool.status()} at end"
-                )
+                self._logger.debug(f"Session status: {_session.bind.pool.status()} at end")
 
     @asynccontextmanager
-    async def atomic_concurrent(self) -> AsyncSession:
+    async def atomic_concurrent(self) -> AsyncGenerator[AsyncSession, Any]:
         async with self.sqlalchemy_adapter.engine.begin() as _conn:
             async with self.sqlalchemy_adapter.session_factory() as _session:
                 try:
                     async with _session.begin():
                         if self._logger:
-                            self._logger.debug(
-                                f"Session status: {_session.bind.pool.status()} at start"
-                            )
+                            self._logger.debug(f"Session status: {_session.bind.pool.status()} at start")
                         yield _session
                 except Exception as e:
                     await _session.rollback()
                     raise e
                 if self._logger:
-                    self._logger.debug(
-                        f"Session status: {_session.bind.pool.status()} at end"
-                    )
+                    self._logger.debug(f"Session status: {_session.bind.pool.status()} at end")
 
     def transactional(self):
         def wrapper(func: Callable) -> Callable:
